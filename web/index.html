@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OpenGate · circuit-gated vault on X Layer</title>
+  <meta name="description" content="Stake OpenGate transistors and earn OKB. Your reward tier is computed by a NAND circuit taped out with TapeOut on X Layer." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.17.0/dist/ethers.umd.min.js"></script>
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M4 5h8a7 7 0 0 1 0 14H4z" /><circle cx="20.5" cy="12" r="1.8" /></svg>
+      </span>
+      <div>
+        <div class="name">OpenGate</div>
+        <div class="tag">circuit-gated vault · X Layer</div>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="vault" class="active">Vault</button>
+      <button role="tab" data-tab="circuit">Circuit</button>
+      <button role="tab" data-tab="tapeout">Tape out</button>
+      <button role="tab" data-tab="setup">Setup</button>
+    </nav>
+    <button id="connect" class="btn primary">Connect wallet</button>
+  </header>
+
+  <main>
+    <div id="banner" class="banner" hidden></div>
+
+    <!-- ============================================================ VAULT -->
+    <section id="tab-vault" class="tab active">
+      <div class="hero">
+        <h1>Your reward tier is decided by <em>hardware</em>.</h1>
+        <p>Stake OpenGate transistors and earn OKB. The vault feeds your on-chain facts into a 40-gate NAND circuit taped out on X Layer, and the circuit decides your multiplier. No admin can bend the rule; changing it means taping out a new circuit behind a 2-day timelock.</p>
+      </div>
+
+      <div class="stats" id="vault-stats">
+        <div class="stat"><span class="k">Reward pool</span><span class="v" id="s-balance">–</span></div>
+        <div class="stat"><span class="k">Emission</span><span class="v" id="s-rate">–</span></div>
+        <div class="stat"><span class="k">Period ends</span><span class="v" id="s-finish">–</span></div>
+        <div class="stat"><span class="k">Transistors minted</span><span class="v" id="s-minted">–</span></div>
+        <div class="stat"><span class="k">Policy circuit</span><span class="v" id="s-circuit">–</span></div>
+      </div>
+
+      <div class="grid">
+        <div class="card" id="card-level">
+          <h2>Your tier</h2>
+          <div class="level-row">
+            <div class="level-big"><span id="u-level">–</span><small>/7</small></div>
+            <div>
+              <div class="mult" id="u-mult">–</div>
+              <div class="muted" id="u-level-note">Connect a wallet to see your tier.</div>
+            </div>
+          </div>
+          <div class="bits" id="u-bits"></div>
+          <button class="btn" id="btn-poke" disabled>Refresh tier</button>
+        </div>
+
+        <div class="card">
+          <h2>Stake</h2>
+          <dl class="kv">
+            <dt>In wallet</dt><dd id="u-wallet">–</dd>
+            <dt>Staked</dt><dd id="u-staked">–</dd>
+            <dt>Staked since</dt><dd id="u-since">–</dd>
+          </dl>
+          <label class="field">
+            <span>NAND transistors</span>
+            <input id="in-stake" type="number" min="1" step="1" placeholder="1000" />
+          </label>
+          <div class="row">
+            <button class="btn primary" id="btn-stake" disabled>Stake</button>
+            <button class="btn" id="btn-unstake" disabled>Unstake</button>
+          </div>
+          <p class="hint">Partial unstakes restart your stake age. Unstaking never depends on the circuit, so it always works.</p>
+        </div>
+
+        <div class="card">
+          <h2>Rewards</h2>
+          <div class="earned"><span id="u-earned">–</span> <small>OKB</small></div>
+          <button class="btn primary" id="btn-claim" disabled>Claim</button>
+          <hr />
+          <h3>Mint transistors</h3>
+          <label class="field">
+            <span>Amount</span>
+            <input id="in-mint" type="number" min="1" step="1" placeholder="1000" />
+          </label>
+          <div class="muted" id="mint-cost">–</div>
+          <button class="btn" id="btn-mint" disabled>Mint NAND</button>
+        </div>
+      </div>
+
+      <div class="card rules">
+        <h2>How the tier is computed</h2>
+        <table>
+          <thead><tr><th>Input</th><th>0</th><th>1</th><th>2</th><th>3</th></tr></thead>
+          <tbody>
+            <tr><td>Stake size (2 bits)</td><td>&lt;100</td><td>≥100</td><td>≥1,000</td><td>≥10,000</td></tr>
+            <tr><td>Stake age (2 bits)</td><td>&lt;1 day</td><td>≥1 day</td><td>≥7 days</td><td>≥30 days</td></tr>
+            <tr><td>Builder (1 bit)</td><td colspan="4">own a circuit taped out on OpenGate</td></tr>
+            <tr><td>IGNIX holder (1 bit)</td><td colspan="4">hold ≥ <span id="r-threshold">100,000</span> IGNIX</td></tr>
+          </tbody>
+        </table>
+        <p><code>tier = min(7, size + age + builder + ignix)</code> · reward weight = staked × (1 + 0.25 × tier), from 1.00× to 2.75×.</p>
+      </div>
+    </section>
+
+    <!-- ============================================================ CIRCUIT -->
+    <section id="tab-circuit" class="tab">
+      <div class="hero">
+        <h1>TierLogic v1 · <span id="c-gates">40</span> NAND gates</h1>
+        <p>This is the exact netlist taped out on X Layer. Toggle the inputs to watch signals propagate; lit wires carry a 1. Then ask the chain: the app calls the circuit's <code>eval()</code> on X Layer and compares it with the browser simulation.</p>
+      </div>
+      <div class="card">
+        <div class="toggles" id="c-toggles"></div>
+        <div class="c-result">
+          <div>Browser: tier <b id="c-local">–</b></div>
+          <div>X Layer eval(): tier <b id="c-chain">–</b></div>
+          <button class="btn" id="btn-eval">Ask the chain</button>
+          <button class="btn ghost" id="btn-mine">Use my inputs</button>
+        </div>
+        <div class="svg-wrap"><svg id="c-svg" role="img" aria-label="TierLogic NAND circuit"></svg></div>
+      </div>
+    </section>
+
+    <!-- ============================================================ TAPE OUT -->
+    <section id="tab-tapeout" class="tab">
+      <div class="hero">
+        <h1>Tape out a circuit on OpenGate</h1>
+        <p>Paste a design from Circuit Copilot (<code>out/&lt;name&gt;.json</code>) or a raw netlist. The app mints the NAND transistors you're missing, tapes the circuit out, and you become a <b>builder</b>, which adds +1 to your tier.</p>
+      </div>
+      <div class="card">
+        <label class="field">
+          <span>Copilot JSON or netlist hex</span>
+          <textarea id="to-input" rows="6" placeholder='{"netlistHex":"0x…","nIn":6,"nOut":3,"nNand":40}  or  0x000000…'></textarea>
+        </label>
+        <div class="row">
+          <label class="field small"><span>Inputs</span><input id="to-nin" type="number" min="1" /></label>
+          <label class="field small"><span>Outputs</span><input id="to-nout" type="number" min="1" /></label>
+          <label class="field small"><span>Gates</span><input id="to-gates" type="number" readonly /></label>
+        </div>
+        <div class="muted" id="to-summary">–</div>
+        <div class="row">
+          <button class="btn ghost" id="btn-to-tier">Load TierLogic v1</button>
+          <button class="btn primary" id="btn-tapeout" disabled>Mint &amp; tape out</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ SETUP -->
+    <section id="tab-setup" class="tab">
+      <div class="hero">
+        <h1>One-time setup</h1>
+        <p>Run these four steps once from the creator wallet. Each one is a transaction you sign in your wallet; nothing else holds keys. When it's done, copy the config into <code>web/config.js</code>.</p>
+      </div>
+      <ol class="steps">
+        <li class="card" id="step-1">
+          <h2>1 · Create the OpenGate processor</h2>
+          <p class="muted" id="st1-desc">–</p>
+          <button class="btn primary" id="btn-st1" disabled>Create processor</button>
+          <div class="out" id="st1-out"></div>
+        </li>
+        <li class="card" id="step-2">
+          <h2>2 · Tape out TierLogic v1</h2>
+          <p class="muted">Mints the 40 NAND transistors the circuit needs, then tapes it out (0.0013 OKB fee).</p>
+          <button class="btn primary" id="btn-st2" disabled>Mint &amp; tape out</button>
+          <div class="out" id="st2-out"></div>
+        </li>
+        <li class="card" id="step-3">
+          <h2>3 · Deploy the vault</h2>
+          <p class="muted" id="st3-desc">–</p>
+          <button class="btn primary" id="btn-st3" disabled>Deploy vault</button>
+          <div class="out" id="st3-out"></div>
+        </li>
+        <li class="card" id="step-4">
+          <h2>4 · Fund rewards</h2>
+          <label class="field small"><span>OKB</span><input id="in-fund" type="number" min="0" step="0.01" value="0.2" /></label>
+          <button class="btn primary" id="btn-st4" disabled>Fund</button>
+          <div class="out" id="st4-out"></div>
+        </li>
+      </ol>
+      <div class="card">
+        <h2>Config</h2>
+        <pre id="cfg-out">–</pre>
+        <div class="row">
+          <button class="btn" id="btn-copy-cfg">Copy</button>
+          <button class="btn ghost" id="btn-reset-cfg">Forget saved setup</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <footer>
+    Built on <a href="https://www.tapeout.net" target="_blank" rel="noopener">TapeOut</a> · <a href="https://ignix.bot" target="_blank" rel="noopener">IGNIX</a> · X Layer.
+    Test phase: TapeOut contracts are upgradeable and unaudited; only use what you can afford to lose.
+  </footer>
+</body>
+</html>

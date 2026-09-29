@@ -1,17 +1,22 @@
 {
-  "name": "ignix",
+  "name": "opengate",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Circuit-gated staking vault on X Layer: reward tiers computed by a TapeOut NAND circuit",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "compile": "hardhat compile",
+    "build:web": "hardhat compile && node scripts/build-web.js",
+    "test": "hardhat test",
+    "test:fork": "cross-env FORK=1 hardhat test",
+    "circuit": "node circuit/tierLogic.js",
+    "web": "python -m http.server 5173 --directory web"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "commonjs",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^6.1.2",
+    "cross-env": "^10.1.0",
     "hardhat": "^2.29.1"
   },
   "dependencies": {

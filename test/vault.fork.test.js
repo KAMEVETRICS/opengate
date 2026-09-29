@@ -156,6 +156,22 @@ describeFork('CircuitVault on forked X Layer', function () {
     expect(await vault.circuitId()).to.equal(v2);
   });
 
+  it('pauses emission while nobody is staked, so no funded OKB is lost', async function () {
+    const Vault = await ethers.getContractFactory('CircuitVault');
+    const empty = await Vault.deploy(await circuits.getAddress(), circuitId, XLAYER.ignix, OKB(1000), 7 * DAY, creator.address);
+    await empty.connect(funder).fund({ value: OKB(1) });
+    const finish0 = await empty.periodFinish();
+
+    await time.increase(3 * DAY); // nobody staked for 3 days
+    await mint(alice, 0, 100);
+    await transistors.connect(alice).setApprovalForAll(await empty.getAddress(), true);
+    await empty.connect(alice).stake(100, 0);
+    expect(await empty.periodFinish()).to.be.closeTo(finish0 + BigInt(3 * DAY), 5n);
+
+    await time.increase(11 * DAY); // past the (extended) end
+    expect(await empty.earned(alice.address)).to.be.closeTo(OKB(1), OKB('0.000001'));
+  });
+
   it('funding during an active period raises the rate instead of stretching it', async function () {
     await vault.connect(funder).fund({ value: OKB(1) });
     const finish = await vault.periodFinish();
