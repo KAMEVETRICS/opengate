@@ -2,7 +2,9 @@
 
 You are implementing **Circuit Copilot**, a tool that turns a plain-English description of a digital circuit into a verified TapeOut netlist that can be taped out on X Layer. Follow this guide in order. Each step ends with a check you must pass before moving on.
 
-Deadline for the whole hackathon is **2026-10-05 21:00 UTC-7**, so aim to finish in 3 days. Correctness beats features.
+Deadline for the whole hackathon is **2026-10-05 21:00 UTC-7**. Finish by **2026-10-03** so there is time to review and integrate. Correctness beats features.
+
+All paths in this guide are relative to the **repository root** (the folder containing `package.json`), not to `copilot/`. Run every command from the repository root.
 
 ---
 
