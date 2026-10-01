@@ -2,6 +2,8 @@
 
 **A staking vault whose reward rules run on a NAND circuit taped out on X Layer.**
 
+Live app: https://kamevetrics.github.io/opengate/
+
 OpenGate is a TapeOut processor on X Layer. Its transistors are the staking asset, and a 40-gate circuit taped out on the same processor sets the reward rule. When anyone stakes, pokes or unstakes, the vault calls that circuit's `eval()` on-chain with the staker's facts, and the circuit returns their reward tier. To change the rule you tape out a new circuit and wait out a 2-day timelock. The owner has no admin switch that bypasses it.
 
 This entry is for the TapeOut Genesis Transistor Hackathon (IGNIX × X Layer × TapeOut). It prototypes the "vault mechanics around a transistor" that IGNIX plans to build for the Genesis Transistor.
