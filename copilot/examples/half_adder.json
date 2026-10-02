@@ -1,0 +1,26 @@
+{
+  "name": "half_adder",
+  "description": "Add two bits: sum and carry",
+  "inputs": [
+    {
+      "name": "a",
+      "bits": 1
+    },
+    {
+      "name": "b",
+      "bits": 1
+    }
+  ],
+  "outputs": [
+    {
+      "name": "sum",
+      "bits": 1,
+      "expr": "a ^ b"
+    },
+    {
+      "name": "carry",
+      "bits": 1,
+      "expr": "a & b"
+    }
+  ]
+}

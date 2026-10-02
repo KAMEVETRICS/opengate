@@ -1,0 +1,29 @@
+{
+  "name": "tier_logic_v1",
+  "description": "OpenGate policy v1: tier = min(7, size + age + builder + ignix)",
+  "inputs": [
+    {
+      "name": "size",
+      "bits": 2
+    },
+    {
+      "name": "age",
+      "bits": 2
+    },
+    {
+      "name": "builder",
+      "bits": 1
+    },
+    {
+      "name": "ignix",
+      "bits": 1
+    }
+  ],
+  "outputs": [
+    {
+      "name": "level",
+      "bits": 3,
+      "expr": "min(7, size + age + builder + ignix)"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "name": "tier_logic_v2",
+  "description": "OpenGate policy v2: no tier without a stake; IGNIX holders get +2",
+  "inputs": [
+    {
+      "name": "size",
+      "bits": 2
+    },
+    {
+      "name": "age",
+      "bits": 2
+    },
+    {
+      "name": "builder",
+      "bits": 1
+    },
+    {
+      "name": "ignix",
+      "bits": 1
+    }
+  ],
+  "outputs": [
+    {
+      "name": "level",
+      "bits": 3,
+      "expr": "size == 0 ? 0 : min(7, size + age + builder + 2 * ignix)"
+    }
+  ]
+}

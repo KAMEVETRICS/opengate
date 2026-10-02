@@ -1,0 +1,21 @@
+{
+  "name": "adder4",
+  "description": "4-bit adder with carry out",
+  "inputs": [
+    {
+      "name": "a",
+      "bits": 4
+    },
+    {
+      "name": "b",
+      "bits": 4
+    }
+  ],
+  "outputs": [
+    {
+      "name": "s",
+      "bits": 5,
+      "expr": "a + b"
+    }
+  ]
+}
