@@ -1,6 +1,10 @@
 import { XLAYER, TIER } from './generated.js';
 import { DEPLOYED, PROCESSOR, VAULT } from './config.js';
 import { createCore, simulateAll, weightMultiplier, NAND } from './core.js';
+import { synthesize } from './vendor/copilot/synth.mjs';
+import { truthTable } from './vendor/copilot/table.mjs';
+import { layout } from './vendor/copilot/spec.mjs';
+import { EXAMPLES } from './vendor/examples.js';
 
 const { ethers } = window;
 const core = createCore(ethers);
@@ -158,6 +162,7 @@ async function refresh() {
   renderVault();
   renderSetup();
   renderTapeout();
+  renderOwner();
 }
 
 // ---------------------------------------------------------------- vault tab
@@ -446,6 +451,103 @@ function bindTapeout() {
   }));
 }
 
+// ---------------------------------------------------------------- design tab
+
+const FEES = { mint: 0.00066, tapeout: 0.0013 };
+let designResult = null;
+
+const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+function truthTableHtml(spec) {
+  const { inputs, outputs } = layout(spec);
+  const t = truthTable(spec);
+  const value = (row, o) => { let v = 0; for (let b = 0; b < o.bits; b++) v += row[o.offset + b] * 2 ** b; return v; };
+  const head = `<tr>${inputs.map((p) => `<th>${escapeHtml(p.name)}</th>`).join('')}<th></th>${outputs.map((o) => `<th>${escapeHtml(o.name)}</th>`).join('')}</tr>`;
+  const body = t.rows.map((row, x) => `<tr>${inputs.map((p) => `<td>${Math.floor(x / 2 ** p.offset) % 2 ** p.bits}</td>`).join('')}<td class="sep">→</td>${outputs.map((o) => `<td>${value(row, o)}</td>`).join('')}</tr>`).join('');
+  return `<div class="tt-wrap"><table class="tt"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+}
+
+function compileDesign() {
+  const out = $('d-out');
+  $('d-actions').hidden = true;
+  designResult = null;
+  let spec;
+  try {
+    spec = JSON.parse($('d-spec').value);
+  } catch (e) {
+    out.innerHTML = `<span class="badge bad">invalid JSON</span><p class="error">${escapeHtml(e.message)}</p>`;
+    return;
+  }
+  try {
+    const t0 = performance.now();
+    const r = synthesize(spec, { policy: $('d-policy').checked });
+    const ms = Math.round(performance.now() - t0);
+    const price = state.processor ? Number(ethers.formatEther(state.processor.price)) : Number(PROCESSOR.priceOkb);
+    const cost = r.nNand * price + FEES.mint + FEES.tapeout;
+    designResult = r;
+    const alt = Object.entries(r.alternatives).map(([k, v]) => `${k} ${v ?? 'n/a'}`).join(' · ');
+    out.innerHTML = `
+      <span class="badge ok">✓ verified on all ${r.checkedInputs.toLocaleString()} inputs</span>
+      <dl class="d-facts">
+        <dt>Gates</dt><dd>${r.gates} NAND (${escapeHtml(r.strategy)}; ${escapeHtml(alt)})</dd>
+        <dt>Pins</dt><dd>${r.nIn} in / ${r.nOut} out</dd>
+        <dt>Tape-out cost</dt><dd>~${cost.toFixed(6)} OKB</dd>
+        <dt>Vault policy</dt><dd>${r.policyCompatible ? 'yes, can be proposed to the vault' : 'no (any circuit still makes you a builder)'}</dd>
+        <dt>Compiled in</dt><dd>${ms} ms</dd>
+      </dl>
+      ${r.unusedInputs.length ? `<p class="muted">Inputs never used: ${r.unusedInputs.map(escapeHtml).join(', ')}</p>` : ''}
+      ${r.nIn <= 8 ? truthTableHtml(spec) : '<p class="muted">Truth table hidden for more than 8 input bits.</p>'}`;
+    $('d-actions').hidden = false;
+  } catch (e) {
+    out.innerHTML = `<span class="badge bad">rejected</span><p class="error">${escapeHtml(e.message)}</p>`;
+  }
+}
+
+function renderOwner() {
+  const v = state.vault;
+  const isOwner = Boolean(v && state.account && v.owner.toLowerCase() === state.account.toLowerCase());
+  $('d-owner').hidden = !isOwner;
+  if (!isOwner) return;
+  $('d-pending').textContent = v.pendingCircuitEta > 0n
+    ? `Pending: circuit #${v.pendingCircuitId}, can be activated after ${fmtDate(Number(v.pendingCircuitEta))}. Active now: #${v.circuitId}.`
+    : `Active policy: circuit #${v.circuitId}. Nothing pending.`;
+}
+
+function bindDesign() {
+  const sel = $('d-example');
+  sel.innerHTML = Object.entries(EXAMPLES).map(([k, s]) => `<option value="${escapeHtml(k)}">${escapeHtml(k)}: ${escapeHtml(s.description || '')}</option>`).join('');
+  const load = () => {
+    const s = EXAMPLES[sel.value];
+    $('d-spec').value = JSON.stringify(s, null, 2);
+    $('d-policy').checked = /^(tier_logic|builders_first)/.test(sel.value);
+    compileDesign();
+  };
+  sel.value = 'tier_logic_v2';
+  sel.addEventListener('change', load);
+  load();
+  $('btn-compile').addEventListener('click', compileDesign);
+  $('d-spec').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) compileDesign(); });
+  $('btn-send-tapeout').addEventListener('click', () => {
+    if (!designResult) return;
+    $('to-input').value = JSON.stringify({ name: designResult.spec.name, netlistHex: designResult.netlistHex, nIn: designResult.nIn, nOut: designResult.nOut, nNand: designResult.nNand, verified: true });
+    renderTapeout();
+    document.querySelector('.tabs button[data-tab="tapeout"]').click();
+  });
+  $('btn-download').addEventListener('click', () => {
+    if (!designResult) return;
+    const blob = new Blob([JSON.stringify(designResult, null, 2)], { type: 'application/json' });
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `${designResult.spec.name}.json` });
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+  $('btn-propose').addEventListener('click', (e) => act(e.currentTarget, async (s) => {
+    const id = parseInt($('in-propose').value, 10);
+    if (!(id > 0)) throw new Error('Enter the circuit id to propose.');
+    await core.proposeCircuit(state.signer, state.deployed.vault, id, s);
+  }));
+  $('btn-activate').addEventListener('click', (e) => act(e.currentTarget, (s) => core.activateCircuit(state.signer, state.deployed.vault, s)));
+}
+
 // ---------------------------------------------------------------- setup tab
 
 function renderSetup() {
@@ -511,6 +613,7 @@ bindTabs();
 bindVault();
 bindCircuit();
 bindTapeout();
+bindDesign();
 bindSetup();
 $('connect').addEventListener('click', connect);
 watchWallet();

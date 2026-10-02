@@ -28,7 +28,7 @@ This entry is for the TapeOut Genesis Transistor Hackathon (IGNIX × X Layer × 
   - a live, clickable diagram of the circuit, checked against the chain with **Ask the chain**;
   - tape out any design (including Circuit Copilot output) to become a builder;
   - a 4-step setup for the creator.
-- **Circuit Copilot** ([copilot/](copilot/), spec in [copilot/GUIDE.md](copilot/GUIDE.md)): turns English into a verified NAND netlist, for designing new policy circuits.
+- **Circuit Copilot** ([copilot/](copilot/)): describe logic in English (via Claude, from the CLI) or as expressions (CLI or the web app's **Design** tab). It compiles to NAND gates and checks the result on every possible input before you can tape it out. It compiles TierLogic to 38 gates, below the hand-built 40. Vault owners use it to write new policy circuits. Anyone can use it to design a circuit, tape it out and become a builder.
 
 ### Why taping out matters here
 - **Transistor demand:** stakers mint OpenGate transistors to stake them, and the creator earns the mint price.

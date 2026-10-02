@@ -26,6 +26,7 @@
     <nav class="tabs" role="tablist">
       <button role="tab" data-tab="vault" class="active">Vault</button>
       <button role="tab" data-tab="circuit">Circuit</button>
+      <button role="tab" data-tab="design">Design</button>
       <button role="tab" data-tab="tapeout">Tape out</button>
       <button role="tab" data-tab="setup">Setup</button>
     </nav>
@@ -127,6 +128,51 @@
           <button class="btn ghost" id="btn-mine">Use my inputs</button>
         </div>
         <div class="svg-wrap"><svg id="c-svg" role="img" aria-label="TierLogic NAND circuit"></svg></div>
+      </div>
+    </section>
+
+    <!-- ============================================================ DESIGN -->
+    <section id="tab-design" class="tab">
+      <div class="hero">
+        <h1>Circuit Copilot</h1>
+        <p>Describe the logic as expressions and Copilot compiles it to NAND gates in your browser, then checks the result on <b>every possible input</b> before you can tape it out. Use it to write a new reward policy for the vault, or any circuit at all. Prefer plain English? The CLI asks Claude to write the spec: <code>node copilot/cli.mjs "a 2-bit comparator"</code>.</p>
+      </div>
+      <div class="grid design-grid">
+        <div class="card">
+          <div class="row">
+            <label class="field grow"><span>Start from an example</span>
+              <select id="d-example"></select>
+            </label>
+            <label class="check"><input type="checkbox" id="d-policy" /> Vault policy shape</label>
+          </div>
+          <label class="field">
+            <span>Spec: inputs, then one expression per output</span>
+            <textarea id="d-spec" rows="16" spellcheck="false"></textarea>
+          </label>
+          <details class="help">
+            <summary>Expression cheat sheet</summary>
+            <p><code>+ - *</code> (minus stops at 0) · <code>&amp; | ^ ~</code> · <code>== != &lt; &lt;= &gt; &gt;=</code> · <code>! &amp;&amp; ||</code> · <code>c ? a : b</code> · <code>&lt;&lt; &gt;&gt;</code> by a constant · <code>min() max() bit(x,i) popcount()</code>. Inputs are packed in order, least-significant bit first. At most 16 input bits.</p>
+          </details>
+          <button class="btn primary" id="btn-compile">Compile &amp; verify</button>
+        </div>
+        <div class="card" id="d-result">
+          <h2>Result</h2>
+          <div id="d-out" class="muted">Compile a spec to see its gates, cost and truth table.</div>
+          <div class="row" id="d-actions" hidden>
+            <button class="btn primary" id="btn-send-tapeout">Tape it out →</button>
+            <button class="btn" id="btn-download">Download JSON</button>
+          </div>
+        </div>
+      </div>
+      <div class="card" id="d-owner" hidden>
+        <h2>Vault owner · change the policy</h2>
+        <p class="muted">Tape out a policy-shaped circuit first, then propose its id. It becomes active after the 2-day timelock, and stakers can see it coming.</p>
+        <div class="row">
+          <label class="field small"><span>Circuit id</span><input id="in-propose" type="number" min="1" step="1" /></label>
+          <button class="btn" id="btn-propose">Propose</button>
+          <button class="btn" id="btn-activate">Activate</button>
+        </div>
+        <div class="out" id="d-pending"></div>
       </div>
     </section>
 

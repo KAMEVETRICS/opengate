@@ -192,11 +192,16 @@ export function createCore(ethers) {
     send(vaultAt(vaultAddr, signer).fund({ value: ethers.parseEther(String(okb)) }), onStatus, 'Fund rewards');
   const withdrawEarnings = (signer, transistorsAddr, onStatus) =>
     send(transistorsAt(transistorsAddr, signer).withdraw(), onStatus, 'Withdraw mint earnings');
+  // Vault owner: new policy circuits wait out the vault's 2-day timelock.
+  const proposeCircuit = (signer, vaultAddr, circuitId, onStatus) =>
+    send(vaultAt(vaultAddr, signer).proposeCircuit(BigInt(circuitId)), onStatus, `Propose circuit #${circuitId}`);
+  const activateCircuit = (signer, vaultAddr, onStatus) =>
+    send(vaultAt(vaultAddr, signer).activateCircuit(), onStatus, 'Activate policy');
 
   return {
     createProcessor, mint, mintCost, tapeout, deployVault,
     readProcessor, readVault, readUser,
-    stake, unstake, claim, poke, fund, withdrawEarnings,
+    stake, unstake, claim, poke, fund, withdrawEarnings, proposeCircuit, activateCircuit,
     circuitsAt, transistorsAt, vaultAt,
   };
 }
