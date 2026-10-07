@@ -72,11 +72,14 @@ npm run web            # serve web/ at http://localhost:5173
 
 ## Deployed addresses (X Layer, chain 196)
 
+Deployer / creator wallet: [0x04D32C3243c1a58D15E1bC7B036629eDB6B86Cc5](https://www.oklink.com/xlayer/address/0x04D32C3243c1a58D15E1bC7B036629eDB6B86Cc5)
+
+
 | Contract | Address |
 |---|---|
-| OpenGate processor (circuits) | _after setup_ |
-| OpenGate transistors (ERC-1155) | _after setup_ |
-| TierLogic v1 circuit id | _after setup_ |
-| CircuitVault | _after setup_ |
+| OpenGate processor (circuits) | [0x12FA3aF78B22E9AC3f0afc5D2bf907601a1cA725](https://www.oklink.com/xlayer/address/0x12FA3aF78B22E9AC3f0afc5D2bf907601a1cA725) |
+| OpenGate transistors (ERC-1155) | [0xA0f693b8a30d415091cCcAbD085D4bDE4A3F5966](https://www.oklink.com/xlayer/address/0xA0f693b8a30d415091cCcAbD085D4bDE4A3F5966) |
+| TierLogic v1 circuit id | 1 (40 NAND, 6 in / 3 out) |
+| CircuitVault | [0x51297E8e617E8Dc70491358f450C0a532024733d](https://www.oklink.com/xlayer/address/0x51297E8e617E8Dc70491358f450C0a532024733d) |
 
 TapeOut factory: [`0x1f09…0761`](https://www.oklink.com/xlayer/address/0x1f09daefa827f02cbb40967cc91b259763760761)

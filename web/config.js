@@ -2,10 +2,10 @@
 // (it prints the exact values). Until then the app reads them from the URL
 // (?circuits=…&vault=…&circuitId=…) or from this browser's saved setup.
 export const DEPLOYED = {
-  circuits: '', // OpenGate processor (TapeOut circuits contract)
-  transistors: '', // OpenGate transistors (ERC-1155)
-  circuitId: '', // TierLogic v1 circuit id
-  vault: '', // CircuitVault
+  circuits: '0x12FA3aF78B22E9AC3f0afc5D2bf907601a1cA725', // OpenGate processor (TapeOut circuits contract)
+  transistors: '0xA0f693b8a30d415091cCcAbD085D4bDE4A3F5966', // OpenGate transistors (ERC-1155)
+  circuitId: '1', // TierLogic v1 circuit id
+  vault: '0x51297E8e617E8Dc70491358f450C0a532024733d', // CircuitVault
 };
 
 export const PROCESSOR = {
