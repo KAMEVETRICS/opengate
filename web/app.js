@@ -522,7 +522,7 @@ function bindDesign() {
     $('d-policy').checked = /^(tier_logic|builders_first)/.test(sel.value);
     compileDesign();
   };
-  sel.value = 'tier_logic_v2';
+  sel.value = 'builders_first';
   sel.addEventListener('change', load);
   load();
   $('btn-compile').addEventListener('click', compileDesign);
@@ -564,6 +564,18 @@ function renderSetup() {
   $('st2-out').innerHTML = d.circuitId ? `<span class="ok">✓</span> TierLogic v1 is circuit #${d.circuitId}` : '';
   $('st3-out').innerHTML = d.vault ? `<span class="ok">✓</span> vault ${link(d.vault)}` : '';
   renderConfig();
+  renderEarnings();
+}
+
+async function renderEarnings() {
+  if (!(hasProcessor() && state.account)) { $('cr-owed').textContent = '–'; $('btn-withdraw').disabled = true; return; }
+  try {
+    const owed = await core.transistorsAt(state.deployed.transistors, reader).owed(state.account);
+    $('cr-owed').textContent = fmtOkb(owed, 6);
+    $('btn-withdraw').disabled = owed === 0n;
+  } catch {
+    $('cr-owed').textContent = '–';
+  }
 }
 
 function renderConfig() {
@@ -589,6 +601,7 @@ function bindSetup() {
     if (!(Number(okb) > 0)) throw new Error('Enter an OKB amount.');
     await core.fund(state.signer, state.deployed.vault, okb, s);
   }));
+  $('btn-withdraw').addEventListener('click', (e) => act(e.currentTarget, (s) => core.withdrawEarnings(state.signer, state.deployed.transistors, s)));
   $('btn-copy-cfg').addEventListener('click', async () => {
     try { await navigator.clipboard.writeText($('cfg-out').textContent); toast('Copied.'); } catch { toast('Copy failed; select the text instead.', { error: true }); }
   });
