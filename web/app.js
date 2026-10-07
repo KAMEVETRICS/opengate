@@ -175,7 +175,7 @@ function renderVault() {
   const { processor: p, vault: v, user: u } = state;
   $('s-balance').textContent = v ? `${fmtOkb(v.balance)} OKB` : '–';
   $('s-rate').textContent = v ? `${fmtOkb(v.rewardRate * 86400n)} OKB/day` : '–';
-  $('s-finish').textContent = v ? (Number(v.periodFinish) * 1000 > Date.now() ? fmtDate(Number(v.periodFinish)) : 'not running') : '–';
+  $('s-finish').textContent = v ? (Number(v.periodFinish) * 1000 > Date.now() ? new Date(Number(v.periodFinish) * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'not running') : '–';
   $('s-minted').textContent = p ? `${fmtInt(p.minted)} / ${fmtInt(p.cap)}` : '–';
   $('s-circuit').textContent = v ? `#${v.circuitId} · ${TIER.gates} gates` : '–';
   if (v) $('r-threshold').textContent = fmtInt(ethers.formatEther(v.ignixThreshold));
@@ -684,6 +684,13 @@ function bindTabs() {
 }
 
 bindTabs();
+// Hero call-to-actions: connect, or jump to another tab.
+$('cta-connect').addEventListener('click', () => (state.account ? document.getElementById('card-level').scrollIntoView({ behavior: 'smooth' }) : connect()));
+document.querySelectorAll('[data-goto]').forEach((a) => a.addEventListener('click', (e) => {
+  e.preventDefault();
+  document.querySelector(`.tabs button[data-tab="${a.dataset.goto}"]`).click();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}));
 bindVault();
 bindCircuit();
 bindTapeout();
