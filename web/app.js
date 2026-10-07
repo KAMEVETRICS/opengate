@@ -1,6 +1,6 @@
 import { XLAYER, TIER } from './generated.js';
 import { DEPLOYED, PROCESSOR, VAULT } from './config.js';
-import { createCore, simulateAll, weightMultiplier, NAND } from './core.js';
+import { createCore, simulateAll, weightMultiplier, policyDiff, NAND } from './core.js';
 import { synthesize } from './vendor/copilot/synth.mjs';
 import { truthTable } from './vendor/copilot/table.mjs';
 import { layout } from './vendor/copilot/spec.mjs';
@@ -8,7 +8,8 @@ import { EXAMPLES } from './vendor/examples.js';
 
 const { ethers } = window;
 const core = createCore(ethers);
-const reader = new ethers.JsonRpcProvider(XLAYER.rpc, XLAYER.chainId, { staticNetwork: true });
+// batchMaxCount 1: X Layer's public RPC rejects large JSON-RPC batches.
+const reader = new ethers.JsonRpcProvider(XLAYER.rpc, XLAYER.chainId, { staticNetwork: true, batchMaxCount: 1 });
 const $ = (id) => document.getElementById(id);
 const STORE_KEY = 'opengate.deployed';
 
@@ -163,6 +164,9 @@ async function refresh() {
   renderSetup();
   renderTapeout();
   renderOwner();
+  renderPending();
+  // The first compile can run before vault data arrives; add the impact now.
+  if (designResult?.policyCompatible && state.vault && $('d-impact') && !$('d-impact').innerHTML) compileDesign();
 }
 
 // ---------------------------------------------------------------- vault tab
@@ -210,6 +214,14 @@ function renderVault() {
     .map(([k, on, label]) => `<div class="bit${on ? ' on' : ''}"><span>${k}</span><b>${label}</b></div>`)
     .join('');
 
+  if (u.ignix != null && v) {
+    const have = Number(ethers.formatEther(u.ignix));
+    const need = Number(ethers.formatEther(v.ignixThreshold));
+    $('u-ignix').textContent = have >= need
+      ? `IGNIX holder bonus active: you hold ${fmtInt(Math.floor(have))} IGNIX (threshold ${fmtInt(need)}).`
+      : `Hold ${fmtInt(need)} IGNIX for +1 tier. You hold ${fmtInt(Math.floor(have))}.`;
+  }
+
   $('u-wallet').textContent = `${fmtInt(u.wallet.nand)} NAND · ${fmtInt(u.wallet.latch)} LATCH`;
   $('u-staked').textContent = `${fmtInt(u.staked.nand)} NAND · ${fmtInt(u.staked.latch)} LATCH`;
   $('u-since').textContent = stakedTotal > 0n ? fmtDate(u.stakeStart) : '–';
@@ -242,6 +254,45 @@ function bindVault() {
   }));
   $('btn-claim').addEventListener('click', (e) => act(e.currentTarget, (s) => core.claim(state.signer, state.deployed.vault, s)));
   $('btn-poke').addEventListener('click', (e) => act(e.currentTarget, (s) => core.poke(state.signer, state.deployed.vault, state.account, s)));
+}
+
+// ---------------------------------------------------------------- policy impact
+
+// Every staker situation (64 of them) under the active policy vs another policy.
+function impactHtml(diff, user) {
+  if (!diff.changes.length) return '<div class="impact">Identical to the active policy on all 64 situations.</div>';
+  let mine = '';
+  if (user && user.staked.nand + user.staked.latch > 0n) {
+    const x = user.inputByte;
+    mine = diff.from[x] === diff.to[x]
+      ? `<p>Your tier stays at <b>${diff.from[x]}</b>.</p>`
+      : `<p>Your tier would go from <b>${diff.from[x]}</b> to <b class="${diff.to[x] > diff.from[x] ? 'up' : 'down'}">${diff.to[x]}</b>.</p>`;
+  }
+  const examples = [...diff.changes].sort((a, b) => Math.abs(b.to - b.from) - Math.abs(a.to - a.from)).slice(0, 6);
+  return `<div class="impact">
+    <p><b>${diff.changes.length}</b> of 64 situations change: <span class="up">▲ ${diff.up} higher</span> · <span class="down">▼ ${diff.down} lower</span>.</p>
+    ${mine}
+    <ul>${examples.map((c) => `<li>${escapeHtml(c.label)}: <b>${c.from} → ${c.to}</b></li>`).join('')}</ul>
+  </div>`;
+}
+
+async function activeNetlist() {
+  return core.readNetlist(reader, state.deployed.circuits, state.vault.circuitId);
+}
+
+async function renderPending() {
+  const v = state.vault;
+  const card = $('policy-pending');
+  if (!v || v.pendingCircuitEta === 0n) { card.hidden = true; return; }
+  card.hidden = false;
+  const eta = Number(v.pendingCircuitEta);
+  const when = eta * 1000 > Date.now() ? `can activate after ${fmtDate(eta)}` : 'ready to activate';
+  try {
+    const [from, to] = await Promise.all([activeNetlist(), core.readNetlist(reader, state.deployed.circuits, v.pendingCircuitId)]);
+    $('pp-body').innerHTML = `<p>The owner proposed circuit <b>#${v.pendingCircuitId}</b> (${to.gates} gates) to replace <b>#${v.circuitId}</b>. It ${when}. Here is the impact, computed from the on-chain netlists:</p>${impactHtml(policyDiff(from.netlistHex, to.netlistHex), state.user)}`;
+  } catch (e) {
+    $('pp-body').textContent = `Circuit #${v.pendingCircuitId} is pending (${when}). Could not load its netlist: ${errorText(e)}`;
+  }
 }
 
 // ---------------------------------------------------------------- circuit tab
@@ -496,8 +547,18 @@ function compileDesign() {
         <dt>Compiled in</dt><dd>${ms} ms</dd>
       </dl>
       ${r.unusedInputs.length ? `<p class="muted">Inputs never used: ${r.unusedInputs.map(escapeHtml).join(', ')}</p>` : ''}
+      <div id="d-impact"></div>
       ${r.nIn <= 8 ? truthTableHtml(spec) : '<p class="muted">Truth table hidden for more than 8 input bits.</p>'}`;
     $('d-actions').hidden = false;
+    if (r.policyCompatible && hasVault() && state.vault) {
+      $('d-impact').innerHTML = '<p class="muted">Comparing with the active vault policy…</p>';
+      activeNetlist()
+        .then((active) => {
+          if (designResult !== r) return; // a newer compile replaced this one
+          $('d-impact').innerHTML = `<h3>Impact vs active policy #${state.vault.circuitId}</h3>${impactHtml(policyDiff(active.netlistHex, r.netlistHex), state.user)}`;
+        })
+        .catch((e) => { $('d-impact').innerHTML = `<p class="muted">Could not load the active policy: ${escapeHtml(errorText(e))}</p>`; });
+    }
   } catch (e) {
     out.innerHTML = `<span class="badge bad">rejected</span><p class="error">${escapeHtml(e.message)}</p>`;
   }
@@ -519,10 +580,10 @@ function bindDesign() {
   const load = () => {
     const s = EXAMPLES[sel.value];
     $('d-spec').value = JSON.stringify(s, null, 2);
-    $('d-policy').checked = /^(tier_logic|builders_first)/.test(sel.value);
+    $('d-policy').checked = /^(tier_logic|builder_boost)/.test(sel.value);
     compileDesign();
   };
-  sel.value = 'builders_first';
+  sel.value = 'builder_boost';
   sel.addEventListener('change', load);
   load();
   $('btn-compile').addEventListener('click', compileDesign);

@@ -40,6 +40,36 @@ export function referenceLevel(size, age, builder, ignix) {
 
 export const weightMultiplier = (level) => 1 + 0.25 * level;
 
+// Tier a policy netlist gives for each of the 64 possible inputs.
+export function policyLevels(netlistHex) {
+  return Array.from({ length: 64 }, (_, x) => {
+    const { signals, nSignals } = simulateAll(netlistHex, TIER.nIn, inputBitsFromByte(x));
+    const o = signals.slice(nSignals - TIER.nOut);
+    return o[0] | (o[1] << 1) | (o[2] << 2);
+  });
+}
+
+export function describeInput(x) {
+  const size = ['<100', '≥100', '≥1k', '≥10k'][x & 3];
+  const age = ['<1d', '≥1d', '≥7d', '≥30d'][(x >> 2) & 3];
+  return `stake ${size}, age ${age}${(x >> 4) & 1 ? ', builder' : ''}${(x >> 5) & 1 ? ', IGNIX holder' : ''}`;
+}
+
+// Compare two policies over every situation a staker can be in.
+export function policyDiff(fromNetlist, toNetlist) {
+  const a = policyLevels(fromNetlist);
+  const b = policyLevels(toNetlist);
+  const changes = [];
+  for (let x = 0; x < 64; x++) if (a[x] !== b[x]) changes.push({ x, from: a[x], to: b[x], label: describeInput(x) });
+  return {
+    from: a,
+    to: b,
+    changes,
+    up: changes.filter((c) => c.to > c.from).length,
+    down: changes.filter((c) => c.to < c.from).length,
+  };
+}
+
 // ---------------------------------------------------------------- core
 
 export function createCore(ethers) {
@@ -149,12 +179,26 @@ export function createCore(ethers) {
     return { circuitId, rewardRate, periodFinish, totalWeight, balance, pendingCircuitId, pendingCircuitEta, owner, ignixThreshold: threshold };
   }
 
+  // A taped-out circuit's netlist, read from the chain (cached: circuits are immutable).
+  const netlistCache = new Map();
+  async function readNetlist(provider, circuitsAddr, circuitId) {
+    const key = `${circuitsAddr}:${circuitId}`.toLowerCase();
+    if (!netlistCache.has(key)) {
+      const c = circuitsAt(circuitsAddr, provider);
+      const [info, netlistHex] = await Promise.all([c.circuitInfo(circuitId), c.netlist(circuitId)]);
+      netlistCache.set(key, { netlistHex, nIn: Number(info[0]), nOut: Number(info[1]), gates: Number(info[3]) });
+    }
+    return netlistCache.get(key);
+  }
+
   async function readUser(provider, { vault: vaultAddr, transistors: transistorsAddr }, user) {
     const v = vaultAt(vaultAddr, provider);
     const t = transistorsAt(transistorsAddr, provider);
-    const [staker, input, preview, earned, nand, latch, approved] = await Promise.all([
+    const ig = new ethers.Contract(XLAYER.ignix, ['function balanceOf(address) view returns (uint256)'], provider);
+    const [staker, input, preview, earned, nand, latch, approved, ignix] = await Promise.all([
       v.stakers(user), v.circuitInput(user), v.previewLevel(user), v.earned(user),
       t.balanceOf(user, NAND), t.balanceOf(user, LATCH), t.isApprovedForAll(user, vaultAddr),
+      ig.balanceOf(user).catch(() => null),
     ]);
     const inputByte = parseInt(input, 16);
     return {
@@ -169,6 +213,7 @@ export function createCore(ethers) {
       earned,
       wallet: { nand, latch },
       approved,
+      ignix,
     };
   }
 
@@ -200,7 +245,7 @@ export function createCore(ethers) {
 
   return {
     createProcessor, mint, mintCost, tapeout, deployVault,
-    readProcessor, readVault, readUser,
+    readProcessor, readVault, readUser, readNetlist,
     stake, unstake, claim, poke, fund, withdrawEarnings, proposeCircuit, activateCircuit,
     circuitsAt, transistorsAt, vaultAt,
   };

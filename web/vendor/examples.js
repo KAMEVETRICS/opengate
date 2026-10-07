@@ -21,9 +21,9 @@ export const EXAMPLES = {
       }
     ]
   },
-  "builders_first": {
-    "name": "builders_first",
-    "description": "OpenGate policy: builders get the long-term age bonus right away",
+  "builder_boost": {
+    "name": "builder_boost",
+    "description": "OpenGate policy v2: builders count double; no staker's tier ever goes down",
     "inputs": [
       {
         "name": "size",
@@ -46,7 +46,7 @@ export const EXAMPLES = {
       {
         "name": "level",
         "bits": 3,
-        "expr": "min(7, size + (builder ? 3 : age) + ignix)"
+        "expr": "min(7, size + age + 2 * builder + ignix)"
       }
     ]
   },

@@ -27,13 +27,27 @@ This entry is for the TapeOut Genesis Transistor Hackathon (IGNIX × X Layer × 
   - stake, mint, claim and view your tier;
   - a live, clickable diagram of the circuit, checked against the chain with **Ask the chain**;
   - tape out any design (including Circuit Copilot output) to become a builder;
-  - a 4-step setup for the creator.
+  - **policy impact preview**: before any new policy can go live, see how it changes the tier in all 64 possible staker situations, including your own;
+  - your IGNIX balance against the holder threshold;
+  - a 4-step setup for the creator, and withdrawal of creator mint earnings.
 - **Circuit Copilot** ([copilot/](copilot/)): describe logic in English (via Claude, from the CLI) or as expressions (CLI or the web app's **Design** tab). It compiles to NAND gates and checks the result on every possible input before you can tape it out. It compiles TierLogic to 38 gates, below the hand-built 40. Vault owners use it to write new policy circuits. Anyone can use it to design a circuit, tape it out and become a builder.
 
 ### Why taping out matters here
 - **Transistor demand:** stakers mint OpenGate transistors to stake them, and the creator earns the mint price.
 - **Builders are rewarded:** taping out any circuit on OpenGate burns transistors and raises your tier.
 - **Hardware policy:** the rule is an immutable circuit, which anyone can inspect with `netlist(id)` and test with `eval()`, rather than a mutable admin parameter.
+
+### Policies are proven before they ship, not after
+Changing the rule means taping out a new circuit, proposing it, and waiting 2 days. During that window the app reads both netlists from the chain and shows every staker exactly who gains and who loses. The Design tab shows the same comparison while a policy is still being written.
+
+We caught a real mistake this way. A "builders get the full age bonus immediately" policy (`min(7, size + (builder ? 3 : age) + ignix)`) looked strictly generous, but it quietly lowered 7 situations: builders with stakes over 30 days old. The shipped v2 candidate, `builder_boost` (`min(7, size + age + 2 * builder + ignix)`, 33 gates), raises 28 situations and lowers none. Both cases are tests in [test/web.policy.test.js](test/web.policy.test.js).
+
+The policy space is small (6 input bits), so we check all of it instead of relying on someone to find a counterexample afterwards.
+
+### Current limits
+- Copilot compiles combinational logic only. LATCH-based (stateful) circuits are on the roadmap.
+- Vault policies have a fixed shape (6 inputs, 3 outputs). New input signals would need a new vault version.
+- The holder bonus is the only IGNIX link. Next steps would be routing an IGNIX token's trading tax into the reward pool, and launching builder circuits as IGNIX tokens.
 
 ## Safety design
 - **Unstaking never depends on the circuit.** `unstake()` makes no external calls except returning your tokens. `eval()` and `balanceOf()` are made as low-level calls with gas caps, and any failure means tier 0. A test wipes the TapeOut contract's code on the fork and confirms that stake, poke, claim and unstake all still work.

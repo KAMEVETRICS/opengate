@@ -163,6 +163,13 @@ select {
 .tt td.sep { color: var(--muted); }
 .error { color: var(--bad); font-family: var(--mono); font-size: 13px; white-space: pre-wrap; }
 
+.pending { border-color: #5a4516; margin-bottom: 16px; }
+.impact { margin: 12px 0; font-size: 14px; }
+.impact .up { color: var(--ok); }
+.impact .down { color: var(--bad); }
+.impact ul { margin: 8px 0 0; padding-left: 18px; font: 12px var(--mono); color: var(--muted); }
+.impact li b { color: var(--text); }
+
 .steps { list-style: none; padding: 0; margin: 0 0 16px; display: grid; gap: 12px; }
 .out { font: 12px var(--mono); color: var(--muted); margin-top: 10px; word-break: break-all; }
 .out .ok { color: var(--ok); }

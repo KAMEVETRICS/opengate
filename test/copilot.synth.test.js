@@ -47,7 +47,7 @@ describe('Copilot synthesis', function () {
       const spec = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
       const r = synthesize(spec);
       expect(r.verified, f).to.equal(true);
-      if (spec.name.startsWith('tier_logic') || spec.name === 'builders_first') expect(r.policyCompatible, f).to.equal(true);
+      if (spec.name.startsWith('tier_logic') || spec.name === 'builder_boost') expect(r.policyCompatible, f).to.equal(true);
     }
   });
 
