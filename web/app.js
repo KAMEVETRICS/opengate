@@ -22,8 +22,28 @@ const state = {
   processor: null,
   vault: null,
   user: null,
+  viewAs: readViewAs(), // read-only view of any wallet via ?as=0x…
   circuitInputs: [0, 1, 1, 0, 1, 0], // default demo input on the Circuit tab
 };
+
+function readViewAs() {
+  const a = new URLSearchParams(location.search).get('as');
+  return a && ethers.isAddress(a) ? ethers.getAddress(a) : null;
+}
+
+// Whose vault data to show: the connected wallet wins over a read-only view.
+const viewed = () => state.account || state.viewAs;
+
+function setViewAs(addr) {
+  state.viewAs = addr;
+  const url = new URL(location.href);
+  if (addr) url.searchParams.set('as', addr);
+  else url.searchParams.delete('as');
+  history.replaceState(null, '', url);
+  state.user = null;
+  renderVault(); // clear the old wallet's numbers right away
+  refresh();
+}
 
 // ---------------------------------------------------------------- config
 
@@ -155,7 +175,7 @@ async function refresh() {
   try {
     if (hasProcessor()) state.processor = await core.readProcessor(reader, state.deployed.circuits);
     if (hasVault()) state.vault = await core.readVault(reader, state.deployed.vault);
-    if (hasVault() && state.account) state.user = await core.readUser(reader, state.deployed, state.account);
+    if (hasVault() && viewed()) state.user = await core.readUser(reader, state.deployed, viewed());
   } catch (e) {
     console.error(e);
     toast(`Could not read X Layer: ${errorText(e)}`, { error: true });
@@ -177,17 +197,31 @@ function renderVault() {
   $('s-rate').textContent = v ? `${fmtOkb(v.rewardRate * 86400n)} OKB/day` : '–';
   $('s-finish').textContent = v ? (Number(v.periodFinish) * 1000 > Date.now() ? new Date(Number(v.periodFinish) * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'not running') : '–';
   $('s-minted').textContent = p ? `${fmtInt(p.minted)} / ${fmtInt(p.cap)}` : '–';
-  $('s-circuit').textContent = v ? `#${v.circuitId} · ${TIER.gates} gates` : '–';
-  if (v) $('r-threshold').textContent = fmtInt(ethers.formatEther(v.ignixThreshold));
+  $('s-circuit').textContent = v ? `#${v.circuitId}` : '–';
+  if (v) {
+    $('r-threshold').textContent = fmtInt(ethers.formatEther(v.ignixThreshold));
+    activeNetlist().then((n) => { $('s-circuit').textContent = `#${v.circuitId} · ${n.gates} gates`; }).catch(() => {});
+  }
 
   const ready = Boolean(state.signer && hasVault());
   for (const id of ['btn-stake', 'btn-unstake', 'btn-claim', 'btn-poke', 'btn-mint']) $(id).disabled = !ready;
   updateMintCost();
 
+  // Read-only view: say whose data this is, and offer a shareable link.
+  const readOnly = !state.account && Boolean(state.viewAs);
+  $('u-viewing').hidden = !readOnly;
+  if (readOnly) {
+    $('u-viewing').innerHTML = `Read-only view of <code>${short(state.viewAs)}</code> · <button type="button" id="btn-unview">Clear</button>`;
+    $('btn-unview').onclick = () => setViewAs(null);
+  }
+  $('view-form').hidden = Boolean(state.account);
+  $('btn-share').hidden = !(hasVault() && viewed());
+
   if (!u) {
-    $('u-level').textContent = '–';
-    $('u-mult').textContent = '–';
+    for (const id of ['u-level', 'u-mult', 'u-wallet', 'u-staked', 'u-since', 'u-earned']) $(id).textContent = '–';
     $('u-bits').innerHTML = '';
+    $('u-ignix').textContent = '';
+    $('u-level-note').textContent = 'Connect a wallet to see your tier, or view any wallet below.';
     return;
   }
   const stakedTotal = u.staked.nand + u.staked.latch;
@@ -218,8 +252,8 @@ function renderVault() {
     const have = Number(ethers.formatEther(u.ignix));
     const need = Number(ethers.formatEther(v.ignixThreshold));
     $('u-ignix').textContent = have >= need
-      ? `IGNIX holder bonus active: you hold ${fmtInt(Math.floor(have))} IGNIX (threshold ${fmtInt(need)}).`
-      : `Hold ${fmtInt(need)} IGNIX for +1 tier. You hold ${fmtInt(Math.floor(have))}.`;
+      ? `IGNIX holder bonus active: ${state.account ? 'you hold' : 'this wallet holds'} ${fmtInt(Math.floor(have))} IGNIX (threshold ${fmtInt(need)}).`
+      : `Hold ${fmtInt(need)} IGNIX for +1 tier. ${state.account ? 'You hold' : 'This wallet holds'} ${fmtInt(Math.floor(have))}.`;
   }
 
   $('u-wallet').textContent = `${fmtInt(u.wallet.nand)} NAND · ${fmtInt(u.wallet.latch)} LATCH`;
@@ -254,6 +288,25 @@ function bindVault() {
   }));
   $('btn-claim').addEventListener('click', (e) => act(e.currentTarget, (s) => core.claim(state.signer, state.deployed.vault, s)));
   $('btn-poke').addEventListener('click', (e) => act(e.currentTarget, (s) => core.poke(state.signer, state.deployed.vault, state.account, s)));
+  $('view-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const a = $('in-view').value.trim();
+    if (!ethers.isAddress(a)) return toast('That is not a valid wallet address.', { error: true });
+    $('in-view').value = '';
+    setViewAs(ethers.getAddress(a));
+  });
+  $('btn-share').addEventListener('click', async () => {
+    const url = new URL(location.href);
+    url.search = '';
+    url.hash = '';
+    url.searchParams.set('as', viewed());
+    try {
+      await navigator.clipboard.writeText(url.href);
+      toast('Read-only link copied. Anyone can open it to see this wallet in the vault.');
+    } catch {
+      toast(url.href, { sticky: true });
+    }
+  });
 }
 
 // ---------------------------------------------------------------- policy impact

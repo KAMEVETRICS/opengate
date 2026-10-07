@@ -181,6 +181,16 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 18px 0; }
 .bit.on { border-color: #ffc7a8; background: #fff6f0; }
 .bit.on b { color: #e0552a; }
 
+.viewing {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  background: #f3efff; border: 1px solid #ddd2ff; color: #4b3a8f;
+  border-radius: 12px; padding: 8px 12px; font-size: 13px; margin-bottom: 12px;
+}
+.viewing code { background: #fff; }
+.viewing button { background: none; border: 0; color: inherit; font: 600 13px var(--sans); text-decoration: underline; cursor: pointer; padding: 0; }
+.view-form { display: flex; gap: 8px; margin-bottom: 12px; }
+.view-form input { font-size: 13px; }
+
 .kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 0 0 16px; font-size: 14px; }
 .kv dt { color: var(--muted); }
 .kv dd { margin: 0; font-family: var(--mono); text-align: right; }
