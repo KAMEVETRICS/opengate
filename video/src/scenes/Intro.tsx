@@ -2,6 +2,7 @@ import React from 'react';
 import { AbsoluteFill, interpolate, useCurrentFrame, Easing } from 'remotion';
 import { Backdrop, Rise, GradText, Headline, Body, Eyebrow, Mono, Paper } from '../components/ui';
 import { C, mono, serif } from '../theme';
+import type { SceneProps } from '../Video';
 
 export const Hook: React.FC = () => (
   <Backdrop>
@@ -18,16 +19,16 @@ export const Hook: React.FC = () => (
 );
 
 // A typical vault admin panel: the reward rule is a number someone can change.
-export const Problem: React.FC = () => {
+export const Problem: React.FC<SceneProps> = ({ cue }) => {
   const frame = useCurrentFrame();
-  const changeAt = 150;
+  const changeAt = cue('It can change overnight');
   const t = interpolate(frame, [changeAt, changeAt + 25], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp', easing: Easing.inOut(Easing.cubic) });
   const mult = (2.0 - t * 1.0).toFixed(2);
   const flash = frame > changeAt && frame < changeAt + 40 ? 1 - (frame - changeAt) / 40 : 0;
-  const points = [
-    'Rules change overnight, with no warning',
-    "You can't check a new rule before it hits you",
-    '"Trust the multisig" is the security model',
+  const points: [string, number][] = [
+    ['Rules change overnight, with no warning', cue('It can change overnight')],
+    ["You can't check a new rule before it hits you", cue("You can't check")],
+    ['"Trust the multisig" is the security model', cue('And the security model')],
   ];
   return (
     <Backdrop>
@@ -40,15 +41,15 @@ export const Problem: React.FC = () => {
             </Headline>
           </Rise>
           <div style={{ marginTop: 50, display: 'flex', flexDirection: 'column', gap: 22 }}>
-            {points.map((p, i) => (
-              <Rise key={p} delay={200 + i * 40}>
+            {points.map(([p, at]) => (
+              <Rise key={p} delay={at}>
                 <div style={{ display: 'flex', gap: 18, alignItems: 'center', fontSize: 36, color: '#e9e3ee' }}>
                   <span style={{ width: 14, height: 14, borderRadius: '50%', background: C.bad, flex: 'none' }} />{p}
                 </div>
               </Rise>
             ))}
           </div>
-          <Rise delay={360}>
+          <Rise delay={cue('Stakers carry')}>
             <Body style={{ marginTop: 50, fontSize: 38, color: '#fff' }}>Stakers carry the risk. <GradText>Admins hold the pen.</GradText></Body>
           </Rise>
         </div>
@@ -79,7 +80,7 @@ export const Problem: React.FC = () => {
   );
 };
 
-export const Solution: React.FC = () => {
+export const Solution: React.FC<SceneProps> = ({ cue }) => {
   const props = [
     ['Immutable', 'the rule is NAND gates on X Layer, not a variable'],
     ['Inspectable', 'anyone can read netlist(id)'],
@@ -102,7 +103,7 @@ export const Solution: React.FC = () => {
         </Rise>
         <div style={{ display: 'flex', gap: 28, marginTop: 70 }}>
           {props.map(([k, v], i) => (
-            <Rise key={k} delay={110 + i * 22}>
+            <Rise key={k} delay={cue("It's immutable") + i * 22}>
               <div style={{ width: 470, textAlign: 'left', background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.14)', borderRadius: 28, padding: '30px 34px' }}>
                 <div style={{ fontFamily: serif, fontSize: 56 }}><GradText>{k}</GradText></div>
                 <div style={{ fontSize: 28, color: C.dim, marginTop: 8 }}>{v}</div>
@@ -110,7 +111,7 @@ export const Solution: React.FC = () => {
             </Rise>
           ))}
         </div>
-        <Rise delay={220}>
+        <Rise delay={cue('Changing it')}>
           <Body style={{ marginTop: 56, fontSize: 32, color: '#e9e3ee' }}>
             Changing it means taping out a new circuit, behind a <b style={{ color: '#fff' }}>2-day timelock</b>.
           </Body>

@@ -3,6 +3,7 @@ import { AbsoluteFill, interpolate, useCurrentFrame } from 'remotion';
 import { Backdrop, Rise, GradText, Headline, Body, Caption, Paper, Glass, Mono, Eyebrow } from '../components/ui';
 import { C, mono, serif } from '../theme';
 import demo from '../data/demo.json';
+import type { SceneProps } from '../Video';
 
 const Typed: React.FC<{ text: string; start: number; cps?: number }> = ({ text, start, cps = 1.4 }) => {
   const frame = useCurrentFrame();
@@ -21,7 +22,7 @@ const Check: React.FC<{ delay: number; children: React.ReactNode }> = ({ delay, 
 );
 
 // Circuit Copilot: expression -> NAND gates -> verified on every input.
-export const Copilot: React.FC = () => {
+export const Copilot: React.FC<SceneProps> = () => {
   const p = demo.policies.boost;
   const typedEnd = 40 + p.expr.length / 1.4;
   return (
@@ -90,7 +91,7 @@ const ImpactCard: React.FC<{ title: string; expr: string; up: number; down: numb
 );
 
 // Impact preview across all 64 staker situations, then the timelock.
-export const Impact: React.FC = () => {
+export const Impact: React.FC<SceneProps> = ({ cue }) => {
   const { bad, boost } = demo.policies;
   const steps = ['Tape out', 'Propose', '2-day timelock: stakers see the impact', 'Activate'];
   const frame = useCurrentFrame();
@@ -101,12 +102,12 @@ export const Impact: React.FC = () => {
         <Rise><Headline size={70}>Before a rule goes live, OpenGate shows <GradText italic>who gains and who loses.</GradText></Headline></Rise>
         <Rise delay={20}><Body style={{ marginTop: 16, fontSize: 30 }}>It compares the new circuit with the active one in all 64 situations a staker can be in.</Body></Rise>
         <div style={{ display: 'flex', gap: 30, marginTop: 40 }}>
-          <ImpactCard title="Looks generous…" expr={bad.expr} up={bad.up} down={bad.down} start={50} good={false} verdict="Caught: builders with 30-day stakes would lose a tier" />
-          <ImpactCard title="…so we shipped this instead" expr={boost.expr} up={boost.up} down={boost.down} start={170} good verdict="Nobody's tier goes down" />
+          <ImpactCard title="Looks generous…" expr={bad.expr} up={bad.up} down={bad.down} start={cue('This policy looks generous')} good={false} verdict="Caught: builders with 30-day stakes would lose a tier" />
+          <ImpactCard title="…so we shipped this instead" expr={boost.expr} up={boost.up} down={boost.down} start={cue('So we shipped')} good verdict="Nobody's tier goes down" />
         </div>
         <div style={{ display: 'flex', gap: 14, marginTop: 44, alignItems: 'center' }}>
           {steps.map((s, i) => {
-            const on = frame > 290 + i * 25;
+            const on = frame > cue('Then it waits') + i * 18;
             return (
               <React.Fragment key={s}>
                 <div style={{ padding: '14px 24px', borderRadius: 999, fontSize: 25, fontWeight: 600, background: on ? 'rgba(255,122,69,.16)' : 'rgba(255,255,255,.06)', border: `1px solid ${on ? C.on : 'rgba(255,255,255,.15)'}`, color: on ? '#fff' : C.dim }}>{s}</div>
@@ -120,7 +121,8 @@ export const Impact: React.FC = () => {
   );
 };
 
-export const Safety: React.FC = () => {
+export const Safety: React.FC<SceneProps> = ({ cue }) => {
+  const at = [cue('Unstaking'), cue('The owner'), cue('Every funded'), cue("And it's all tested")];
   const items = [
     ['Unstaking never depends on the circuit', 'If TapeOut ever broke, you drop to tier 0 and can still withdraw.'],
     ["The owner can't touch stakes or rewards", 'The only owner power is proposing a new circuit, behind the timelock.'],
@@ -134,7 +136,7 @@ export const Safety: React.FC = () => {
         <Rise><Headline size={84}>Safe even if <GradText italic>everything else fails.</GradText></Headline></Rise>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 26, marginTop: 50 }}>
           {items.map(([k, v], i) => (
-            <Rise key={k} delay={30 + i * 22}>
+            <Rise key={k} delay={at[i]}>
               <Glass style={{ minHeight: 210 }}>
                 <div style={{ fontFamily: serif, fontSize: 48, lineHeight: 1.1 }}>{k}</div>
                 <div style={{ fontSize: 27, color: C.dim, marginTop: 14 }}>{v}</div>

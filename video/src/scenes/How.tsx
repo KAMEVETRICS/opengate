@@ -3,21 +3,22 @@ import { AbsoluteFill, interpolate, useCurrentFrame, Easing } from 'remotion';
 import { Backdrop, Rise, GradText, Headline, Body, Caption, Glass, Mono } from '../components/ui';
 import { C, mono, serif } from '../theme';
 import demo from '../data/demo.json';
+import type { SceneProps } from '../Video';
 
 const SIZE = ['< 100', '≥ 100', '≥ 1,000', '≥ 10,000'];
 const AGE = ['< 1 day', '≥ 1 day', '≥ 7 days', '≥ 30 days'];
 const BIT_NAMES = ['size 0', 'size 1', 'age 0', 'age 1', 'builder', 'IGNIX'];
 
 // Pipeline: wallet facts -> 6 bits -> eval() on X Layer -> tier -> weight -> OKB.
-export const HowItWorks: React.FC = () => {
+export const HowItWorks: React.FC<SceneProps> = ({ cue }) => {
   const frame = useCurrentFrame();
-  const swap = 320; // switch from scenario 1 to scenario 2
+  const swap = cue('A long-term builder', -8); // switch from scenario 1 to scenario 2
   const s = frame < swap ? demo.scenarios[0] : demo.scenarios[1];
-  const local = frame < swap ? frame : frame - swap;
-  const base = frame < swap ? 40 : 10; // second pass runs faster
-  const step = frame < swap ? 45 : 22;
-  const on = (k: number) => local >= base + k * step;
-  const pulse = (k: number) => interpolate(local, [base + k * step - 12, base + k * step], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  // Pipeline stages light up on the narration's words; the second pass runs quickly.
+  const first = [cue('Your on-chain facts'), cue('become six input bits'), cue('The vault sends'), cue('returns your tier'), cue('A new staker')];
+  const thr = (k: number) => (frame < swap ? first[k] : swap + 10 + k * 18);
+  const on = (k: number) => frame >= thr(k);
+  const pulse = (k: number) => interpolate(frame, [thr(k) - 12, thr(k)], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
   const swapFade = interpolate(frame, [swap - 12, swap, swap + 12], [1, 0.25, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
   const weight = 1 + 0.25 * s.tier;
 
@@ -82,7 +83,7 @@ export const HowItWorks: React.FC = () => {
           </Glass>
         </div>
 
-        <Rise delay={swap + 70} style={{ marginTop: 50 }}>
+        <Rise delay={cue('No admin')} style={{ marginTop: 50 }}>
           <Body style={{ fontSize: 30 }}>
             Every stake, refresh and claim asks the circuit. <b style={{ color: '#fff' }}>No admin can override the answer.</b> Tiers run from 1.00× to 2.75×.
           </Body>
@@ -93,9 +94,9 @@ export const HowItWorks: React.FC = () => {
 };
 
 // The real TierLogic v1 netlist with signals propagating column by column.
-export const CircuitScene: React.FC = () => {
+export const CircuitScene: React.FC<SceneProps> = ({ d, cue }) => {
   const frame = useCurrentFrame();
-  const swap = 250;
+  const swap = Math.round(d * 0.5);
   const s = frame < swap ? demo.scenarios[0] : demo.scenarios[1];
   const t0 = frame < swap ? 50 : swap + 15;
   const perCol = 7;
@@ -161,7 +162,7 @@ export const CircuitScene: React.FC = () => {
             <div style={{ fontFamily: serif, fontSize: 140, lineHeight: 1 }}><GradText>{done ? s.tier : '?'}</GradText></div>
           </div>
         </div>
-        <Rise delay={swap + 110} style={{ marginTop: 26 }}>
+        <Rise delay={cue('Anyone can read')} style={{ marginTop: 26 }}>
           <Body style={{ fontSize: 30 }}>Anyone can read the netlist and replay <Mono style={{ color: '#ffb38c' }}>eval()</Mono> for free. The app's "Ask the chain" button does exactly that.</Body>
         </Rise>
       </AbsoluteFill>

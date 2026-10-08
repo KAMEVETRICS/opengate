@@ -1,0 +1,11 @@
+{
+  "Hook": "Who decides your staking rewards?",
+  "Problem": "In most vaults, the reward rule is just a number that an admin can change. It can change overnight, with no warning. You can't check a new rule before it hits you. And the security model is: trust the multisig. Stakers carry the risk, while admins hold the pen.",
+  "Solution": "OpenGate makes the rule hardware. Rewards come from a NAND circuit, taped out on X Layer with TapeOut. It's immutable. Anyone can inspect it, and anyone can replay it for free. Changing it means taping out a new circuit, behind a two-day timelock.",
+  "HowItWorks": "Here's how it works. Your on-chain facts become six input bits: your stake size, your stake age, whether you're a builder, and whether you hold IGNIX. The vault sends them to the circuit on X Layer, and the circuit returns your tier. A new staker who has built a circuit gets tier two. A long-term builder who holds IGNIX gets tier six. No admin can override the answer.",
+  "CircuitScene": "And this is the real circuit: forty NAND gates, exactly as it lives on chain. Lit wires carry a one. Anyone can read the netlist and replay it, and the app's Ask the chain button does exactly that.",
+  "Copilot": "To change the rule, you write it as an expression, or describe it in plain English. Circuit Copilot compiles it to NAND gates, and proves it correct on every possible input, before it can be taped out.",
+  "Impact": "Before a new rule goes live, OpenGate shows who gains and who loses, across all sixty-four situations a staker can be in. This policy looks generous, but it would quietly drop long-term builders a tier. So we shipped this one instead. Nobody goes down. Then it waits out a two-day timelock, in public.",
+  "Safety": "Unstaking never depends on the circuit. The owner can't touch stakes or rewards. Every funded O K B is paid out. And it's all tested against the real TapeOut contracts.",
+  "Live": "OpenGate is live on X Layer mainnet. Rewards, decided by hardware."
+}

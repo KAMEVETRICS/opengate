@@ -1,0 +1,38 @@
+{
+  "CircuitScene": {
+    "file": "vo/CircuitScene.wav",
+    "seconds": 12.682
+  },
+  "Copilot": {
+    "file": "vo/Copilot.wav",
+    "seconds": 12.302
+  },
+  "Hook": {
+    "file": "vo/Hook.wav",
+    "seconds": 2.359
+  },
+  "HowItWorks": {
+    "file": "vo/HowItWorks.wav",
+    "seconds": 23.207
+  },
+  "Impact": {
+    "file": "vo/Impact.wav",
+    "seconds": 19.701
+  },
+  "Live": {
+    "file": "vo/Live.wav",
+    "seconds": 5.329
+  },
+  "Problem": {
+    "file": "vo/Problem.wav",
+    "seconds": 17.182
+  },
+  "Safety": {
+    "file": "vo/Safety.wav",
+    "seconds": 11.229
+  },
+  "Solution": {
+    "file": "vo/Solution.wav",
+    "seconds": 16.452
+  }
+}
