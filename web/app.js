@@ -204,7 +204,7 @@ function renderVault() {
   }
 
   const ready = Boolean(state.signer && hasVault());
-  for (const id of ['btn-stake', 'btn-unstake', 'btn-claim', 'btn-poke', 'btn-mint']) $(id).disabled = !ready;
+  for (const id of ['btn-stake', 'btn-unstake', 'btn-claim', 'btn-poke', 'btn-mint', 'btn-fund-pool']) $(id).disabled = !ready;
   updateMintCost();
 
   // Read-only view: say whose data this is, and offer a shareable link.
@@ -288,6 +288,11 @@ function bindVault() {
   }));
   $('btn-claim').addEventListener('click', (e) => act(e.currentTarget, (s) => core.claim(state.signer, state.deployed.vault, s)));
   $('btn-poke').addEventListener('click', (e) => act(e.currentTarget, (s) => core.poke(state.signer, state.deployed.vault, state.account, s)));
+  $('btn-fund-pool').addEventListener('click', (e) => act(e.currentTarget, async (s) => {
+    const okb = $('in-fund-pool').value;
+    if (!(Number(okb) > 0)) throw new Error('Enter an OKB amount.');
+    await core.fund(state.signer, state.deployed.vault, okb, s);
+  }));
   $('view-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const a = $('in-view').value.trim();
@@ -664,7 +669,19 @@ function bindDesign() {
 
 // ---------------------------------------------------------------- setup tab
 
+// The Setup tab is creator tooling: show it only to the vault owner, or to anyone
+// while the deployment is unfinished (so the creator can run it the first time).
+function renderSetupVisibility() {
+  const v = state.vault;
+  const isOwner = Boolean(v && state.account && v.owner.toLowerCase() === state.account.toLowerCase());
+  const show = !hasVault() || isOwner;
+  const btn = document.querySelector('.tabs button[data-tab="setup"]');
+  btn.hidden = !show;
+  if (!show && btn.classList.contains('active')) document.querySelector('.tabs button[data-tab="vault"]').click();
+}
+
 function renderSetup() {
+  renderSetupVisibility();
   const d = state.deployed;
   const signed = Boolean(state.signer);
   $('st1-desc').textContent = `"${PROCESSOR.name}" (${PROCESSOR.symbol}) · ${fmtInt(PROCESSOR.supply)} transistors at ${PROCESSOR.priceOkb} OKB each. Both are permanent. Factory fee: ${fmtOkb(BigInt(XLAYER.deployFee))} OKB.`;
