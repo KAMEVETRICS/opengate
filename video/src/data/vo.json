@@ -1,38 +1,38 @@
 {
   "CircuitScene": {
-    "file": "vo/CircuitScene.wav",
-    "seconds": 12.682
+    "file": "vo/CircuitScene.mp3",
+    "seconds": 13.636
   },
   "Copilot": {
-    "file": "vo/Copilot.wav",
-    "seconds": 12.302
+    "file": "vo/Copilot.mp3",
+    "seconds": 12.199
   },
   "Hook": {
-    "file": "vo/Hook.wav",
-    "seconds": 2.359
+    "file": "vo/Hook.mp3",
+    "seconds": 2.194
   },
   "HowItWorks": {
-    "file": "vo/HowItWorks.wav",
-    "seconds": 23.207
+    "file": "vo/HowItWorks.mp3",
+    "seconds": 25.469
   },
   "Impact": {
-    "file": "vo/Impact.wav",
-    "seconds": 19.701
+    "file": "vo/Impact.mp3",
+    "seconds": 21.551
   },
   "Live": {
-    "file": "vo/Live.wav",
+    "file": "vo/Live.mp3",
     "seconds": 5.329
   },
   "Problem": {
-    "file": "vo/Problem.wav",
-    "seconds": 17.182
+    "file": "vo/Problem.mp3",
+    "seconds": 17.241
   },
   "Safety": {
-    "file": "vo/Safety.wav",
-    "seconds": 11.229
+    "file": "vo/Safety.mp3",
+    "seconds": 11.233
   },
   "Solution": {
-    "file": "vo/Solution.wav",
-    "seconds": 16.452
+    "file": "vo/Solution.mp3",
+    "seconds": 16.274
   }
 }
