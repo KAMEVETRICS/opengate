@@ -16,7 +16,11 @@ export function simulateAll(netlistHex, nIn, inBits) {
   const elements = [];
   let p = 0;
   let next = 2 + nIn;
-  const u24 = () => { const v = (b[p] << 16) | (b[p + 1] << 8) | b[p + 2]; p += 3; return v; };
+  const u24 = () => {
+    // Never read past the end: a truncated instruction must fail, not decode as zeros.
+    if (p + 3 > b.length) throw new Error(`truncated netlist: instruction ends at byte ${b.length}, operand needs bytes ${p}..${p + 2}`);
+    const v = (b[p] << 16) | (b[p + 1] << 8) | b[p + 2]; p += 3; return v;
+  };
   while (p < b.length) {
     const op = b[p++];
     if (op === 0) elements.push({ op, a: u24(), b: u24(), out: next++ });

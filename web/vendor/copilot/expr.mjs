@@ -102,7 +102,7 @@ export function parse(src) {
       k++;
       if (isOp('(')) {
         k++;
-        if (!(tok.v in FUNCTIONS)) throw new ExprError(`unknown function '${tok.v}'`, tok.pos);
+        if (!Object.hasOwn(FUNCTIONS, tok.v)) throw new ExprError(`unknown function '${tok.v}'`, tok.pos);
         const args = [];
         if (!isOp(')')) {
           args.push(ternary());

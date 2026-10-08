@@ -16,6 +16,9 @@ export const POLICY_INPUTS = [['size', 2], ['age', 2], ['builder', 1], ['ignix',
 export const POLICY_OUTPUT_BITS = 3;
 
 const NAME = /^[a-z_][a-z0-9_]*$/;
+// Names that collide with JavaScript object internals. Dictionaries below have no
+// prototype anyway; rejecting these too keeps every layer safe on its own.
+const RESERVED = new Set(['__proto__', 'constructor', 'prototype', ...Object.getOwnPropertyNames(Object.prototype)]);
 
 export class SpecError extends Error {}
 
@@ -28,12 +31,13 @@ export function validateSpec(spec, { policy = false } = {}) {
     if (!Array.isArray(spec[key]) || spec[key].length === 0) throw new SpecError(`${key} must be a non-empty array`);
   }
   const seen = new Set();
-  const widths = {};
+  const widths = Object.create(null); // no prototype: names can never hit Object internals
   const checkPort = (p, kind, i) => {
     if (!p || typeof p !== 'object') throw new SpecError(`${kind}[${i}] must be an object`);
     if (typeof p.name !== 'string' || !NAME.test(p.name) || p.name.length > LIMITS.maxName) {
       throw new SpecError(`${kind}[${i}].name must match [a-z_][a-z0-9_]*`);
     }
+    if (RESERVED.has(p.name)) throw new SpecError(`${kind}[${i}].name '${p.name}' is reserved; choose another name`);
     if (seen.has(p.name)) throw new SpecError(`duplicate name '${p.name}'`);
     seen.add(p.name);
     if (!Number.isInteger(p.bits) || p.bits < 1 || p.bits > LIMITS.maxBits) {

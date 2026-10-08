@@ -301,9 +301,10 @@ contract CircuitVault is IERC1155Receiver, Ownable2Step, ReentrancyGuard {
 
     function _updateReward(address user) internal {
         // While nobody is staked, pause the period instead of streaming rewards into
-        // the void: push periodFinish out by the idle time so every funded wei is paid.
+        // the void: push periodFinish out by the FULL idle time (not capped at the old
+        // finish), so rewards funded before a long idle stretch are still paid in full.
         if (totalWeight == 0 && lastUpdateTime < periodFinish) {
-            periodFinish += lastTimeRewardApplicable() - lastUpdateTime;
+            periodFinish += block.timestamp - lastUpdateTime;
         }
         rewardPerWeightStored = rewardPerWeight();
         lastUpdateTime = lastTimeRewardApplicable();

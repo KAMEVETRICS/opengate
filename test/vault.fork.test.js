@@ -172,6 +172,43 @@ describeFork('CircuitVault on forked X Layer', function () {
     expect(await empty.earned(alice.address)).to.be.closeTo(OKB(1), OKB('0.000001'));
   });
 
+  it('pays every funded wei even when the first stake comes after the original finish', async function () {
+    // Reviewer case: fund 7 days of rewards, first stake on day 15.
+    const Vault = await ethers.getContractFactory('CircuitVault');
+    const late = await Vault.deploy(await circuits.getAddress(), circuitId, XLAYER.ignix, OKB(1000), 7 * DAY, creator.address);
+    await late.connect(funder).fund({ value: OKB(1) });
+    const funded = BigInt(await time.latest());
+
+    await time.increase(15 * DAY);
+    await mint(bob, 0, 100);
+    await transistors.connect(bob).setApprovalForAll(await late.getAddress(), true);
+    await late.connect(bob).stake(100, 0);
+    const stakedAt = BigInt(await time.latest());
+    expect(await late.periodFinish()).to.equal(funded + BigInt(7 * DAY) + (stakedAt - funded));
+    expect(await late.periodFinish()).to.be.gt(stakedAt + BigInt(7 * DAY) - 10n);
+
+    await time.increase(8 * DAY);
+    expect(await late.earned(bob.address)).to.be.closeTo(OKB(1), OKB('0.000001'));
+  });
+
+  it('pays in full across several idle gaps, including one that outlasts the period', async function () {
+    const Vault = await ethers.getContractFactory('CircuitVault');
+    const v = await Vault.deploy(await circuits.getAddress(), circuitId, XLAYER.ignix, OKB(1000), 7 * DAY, creator.address);
+    await mint(alice, 0, 200);
+    await transistors.connect(alice).setApprovalForAll(await v.getAddress(), true);
+    await v.connect(funder).fund({ value: OKB(1) });
+    await time.increase(2 * DAY); // idle
+    await v.connect(alice).stake(100, 0);
+    await time.increase(2 * DAY); // staked
+    await v.connect(alice).unstake(100, 0);
+    await time.increase(20 * DAY); // idle far past the original finish
+    await v.connect(alice).stake(100, 0);
+    await time.increase(10 * DAY); // run out the rest
+    await v.connect(alice).unstake(100, 0);
+    await v.connect(alice).claim();
+    expect(await ethers.provider.getBalance(await v.getAddress())).to.be.lt(OKB('0.000001'));
+  });
+
   it('funding during an active period raises the rate instead of stretching it', async function () {
     await vault.connect(funder).fund({ value: OKB(1) });
     const finish = await vault.periodFinish();

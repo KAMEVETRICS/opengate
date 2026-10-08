@@ -120,7 +120,11 @@ export function decode(netlist, nIn) {
   const els = [];
   let i = 0;
   let next = 2 + nIn;
-  const u24 = () => { const v = (b[i] << 16) | (b[i + 1] << 8) | b[i + 2]; i += 3; return v; };
+  const u24 = () => {
+    // Never read past the end: a truncated instruction must fail, not decode as zeros.
+    if (i + 3 > b.length) throw new Error(`truncated netlist: instruction ends at byte ${b.length}, operand needs bytes ${i}..${i + 2}`);
+    const v = (b[i] << 16) | (b[i + 1] << 8) | b[i + 2]; i += 3; return v;
+  };
   while (i < b.length) {
     const op = b[i++];
     if (op === OP.NAND) els.push({ op, a: u24(), b: u24(), out: next++ });

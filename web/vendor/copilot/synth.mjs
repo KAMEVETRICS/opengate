@@ -246,7 +246,7 @@ function compileNode(g, n, env) {
 export function synthStructural(spec, checked = validateSpec(spec)) {
   const { inputs, outputs } = layout(spec);
   const g = new Gates(checked.nIn);
-  const env = {};
+  const env = Object.create(null); // no prototype: input names map only to input signals
   for (const p of inputs) env[p.name] = Array.from({ length: p.bits }, (_, i) => g.input(p.offset + i));
   const outs = outputs.flatMap((o, i) => fit(compileNode(g, checked.asts[i], env), o.bits));
   return g.toBuilder(outs);
